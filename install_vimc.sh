@@ -7,8 +7,6 @@ version=$1
 
 mkdir -p /lib/modules/$version/kernel/drivers/media/platform/vimc ; cp drivers/media/platform/vimc/vimc.ko /lib/modules/$version/kernel/drivers/media/platform/vimc ; true /lib/modules/$version/kernel/drivers/media/platform/vimc/vimc.ko ; scripts/sign-file "sha512" "certs/signing_key.pem" certs/signing_key.x509 /lib/modules/$version/kernel/drivers/media/platform/vimc/vimc.ko  ; true /lib/modules/$version/kernel/drivers/media/platform/vimc/vimc.ko
 
-mkdir -p /lib/modules/$version/kernel/drivers/media ; cp drivers/media/media.ko /lib/modules/$version/kernel/drivers/media ; true /lib/modules/$version/kernel/drivers/media/media.ko ; scripts/sign-file "sha512" "certs/signing_key.pem" certs/signing_key.x509 /lib/modules/$version/kernel/drivers/media/media.ko  && true /lib/modules/$version/kernel/drivers/media/media.ko
-
 mkdir -p /lib/modules/$version/kernel/drivers/media/platform/vicodec
 cp drivers/media/platform/vicodec/vicodec.ko /lib/modules/$version/kernel/drivers/media/platform/vicodec
 true /lib/modules/$version/kernel/drivers/media/platform/vicodec/vicodec.ko

@@ -1,0 +1,102 @@
+From 509e997762b1648040b482994ff6ac9ca7fbde19 Mon Sep 17 00:00:00 2001
+From: Dafna Hirschfeld <dafna3@gmail.com>
+Date: Sat, 17 Aug 2019 05:00:12 -0700
+Subject: [PATCH 4/4] debugs
+
+---
+ drivers/media/platform/vimc/vimc-configfs.c | 16 ++++++++++++++--
+ drivers/media/platform/vimc/vimc-core.c     | 11 +++++++++++
+ 2 files changed, 25 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/vimc/vimc-configfs.c b/drivers/media/platform/vimc/vimc-configfs.c
+index f35b829cdf7e..48fee7579419 100644
+--- a/drivers/media/platform/vimc/vimc-configfs.c
++++ b/drivers/media/platform/vimc/vimc-configfs.c
+@@ -122,6 +122,8 @@ static void vimc_cfs_device_unplug(struct vimc_cfs_device *cfs)
+ static int vimc_cfs_device_plug(struct vimc_cfs_device *cfs)
+ {
+ 	struct vimc_link *link;
++	struct vimc_entity *ent;
++	int i = 0;
+ 
+ 	cg_dbg(&cfs->gdev, "Plugging device\n");
+ 
+@@ -131,6 +133,14 @@ static int vimc_cfs_device_plug(struct vimc_cfs_device *cfs)
+ 		return -EINVAL;
+ 	}
+ 
++	pr_info("%s: start cfs=%px &cfs->pdata.ents=%px\n", __func__, cfs, &cfs->pdata.ents);
++	list_for_each_entry(ent, &cfs->pdata.ents, list) {
++		i++;
++		pr_info("%s: start i=%d ent=%px\n", __func__, i, ent);
++		if (i>10)
++			return -EINVAL;
++	}
++
+ 	list_for_each_entry(link, &cfs->pdata.links, list) {
+ 		if (vimc_cfs_link_set_ents(cfs, link)) {
+ 			cg_err(&cfs->gdev, "could not validate link\n");
+@@ -367,7 +377,7 @@ static struct config_group *vimc_cfs_ent_make_group(struct config_group *group,
+ 		goto syntax_error;
+ 	}
+ 	list_for_each_entry(ent, &cfs->pdata.ents, list) {
+-		if (!strncmp(ent->name, ent_name, strlen(ent->name))) {
++		if (!strncmp(ent->name, ent_name, sizeof(ent->name))) {
+ 			cg_err(&cfs->gdev, "entity `%s` already exist\n",
+ 			       ent->name);
+ 			goto syntax_error;
+@@ -381,7 +391,7 @@ static struct config_group *vimc_cfs_ent_make_group(struct config_group *group,
+ 	strscpy(c_ent->ent.drv_name, name, drv_namelen + 1);
+ 	strscpy(c_ent->ent.name, ent_name, sizeof(c_ent->ent.name));
+ 
+-	cg_dbg(&cfs->gdev, "New entity %s:%s\n",
++	cg_dbg(&cfs->gdev, "new entity %s:%s\n",
+ 	       c_ent->ent.drv_name, c_ent->ent.name);
+ 
+ 
+@@ -545,12 +555,14 @@ static struct config_group *vimc_cfs_dev_make_group(
+ {
+ 	struct vimc_cfs_device *cfs = kzalloc(sizeof(*cfs), GFP_KERNEL);
+ 
++	pr_info("%s: start cfs=%px &cfs->pdata=%px\n", __func__, cfs, &cfs->pdata);
+ 	if (!cfs)
+ 		return ERR_PTR(-ENOMEM);
+ 
+ 	/* Configure platform data */
+ 	INIT_LIST_HEAD(&cfs->pdata.ents);
+ 	INIT_LIST_HEAD(&cfs->pdata.links);
++	pr_info("%s: start cfs=%px &cfs->pdata.ents=%px\n", __func__, cfs, &cfs->pdata.ents);
+ 
+ 	/* Configure configfs group */
+ 	config_group_init_type_name(&cfs->gdev, name, &vimc_cfs_dev_type);
+diff --git a/drivers/media/platform/vimc/vimc-core.c b/drivers/media/platform/vimc/vimc-core.c
+index a829918ca40f..8a98fd21fc47 100644
+--- a/drivers/media/platform/vimc/vimc-core.c
++++ b/drivers/media/platform/vimc/vimc-core.c
+@@ -185,12 +185,23 @@ static int vimc_probe(struct platform_device *pdev)
+ {
+ 	const struct vimc_platform_data_core *pdata = pdev->dev.platform_data;
+ 	struct vimc_device *vimc;
++	struct vimc_entity *ent;
+ 	int ret = 0;
++	int i = 0;
+ 
+ 	dev_dbg(&pdev->dev, "probe\n");
+ 
+ 	vimc = devm_kzalloc(&pdev->dev, sizeof(*vimc),
+ 			GFP_KERNEL);
++	
++	list_for_each_entry(ent, &pdata->ents, list) {
++		i++;
++		pr_info("%s: start i=%d ent=%px %s:%s\n", __func__, i, ent,
++							ent->drv_name, ent->name);
++		if (i>10)
++			return -EINVAL;
++	}
++	
+ 	memset(&vimc->mdev, 0, sizeof(vimc->mdev));
+ 
+ 	/* Link the media device within the v4l2_device */
+-- 
+2.17.1
+
