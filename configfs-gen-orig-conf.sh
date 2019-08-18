@@ -17,6 +17,7 @@ mkdir "/configfs/vimc/mdev/entities/vimc-sensor:RGB/YUV Input"
 mkdir "/configfs/vimc/mdev/entities/vimc-scaler:Scaler"
 mkdir "/configfs/vimc/mdev/entities/vimc-capture:RGB/YUV Capture"
 
-mkdir "/configfs/vimc/mdev/links/my-sensor:0->my-capture:0"
+# TODO - add the links
+# mkdir "/configfs/vimc/mdev/links/my-sensor:0->my-capture:0"
 echo 3 > "/configfs/vimc/mdev/links/my-sensor:0->my-capture:0/flags"
 echo 1 > /configfs/vimc/mdev/hotplug
