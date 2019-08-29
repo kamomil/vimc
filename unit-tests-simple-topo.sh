@@ -22,43 +22,45 @@ function simple_topo {
 	mkdir "/configfs/vimc/mdev/entities/vimc-sensor:sen"
 	mkdir "/configfs/vimc/mdev/entities/vimc-debayer:deb"
 	mkdir "/configfs/vimc/mdev/entities/vimc-scaler:sca"
-	mkdir "/configfs/vimc/mdev/entities/vimc-capture:cap-sca"
-	mkdir "/configfs/vimc/mdev/entities/vimc-capture:cap-sen"
-	mkdir "/configfs/vimc/mdev/entities/vimc-capture:cap-deb"
+	mkdir "/configfs/vimc/mdev/entities/vimc-capture:cap-sca" #/dev/video2
+	mkdir "/configfs/vimc/mdev/entities/vimc-capture:cap-sen" #/dev/video1
+	mkdir "/configfs/vimc/mdev/entities/vimc-capture:cap-deb" #/dev/video0
 
 	# Creating the links
 	mkdir "/configfs/vimc/mdev/links/sen:0->deb:0"
 	mkdir "/configfs/vimc/mdev/links/sen:0->cap-sen:0"
+	# 1 = enable, 2=immutable, 1|2=3
+	echo 3 > "/configfs/vimc/mdev/links/sen:0->cap-sen:0/flags"
 	mkdir "/configfs/vimc/mdev/links/deb:1->sca:0"
 	mkdir "/configfs/vimc/mdev/links/deb:1->cap-deb:0"
+	echo 3 > "/configfs/vimc/mdev/links/deb:1->cap-deb:0/flags"
 	mkdir "/configfs/vimc/mdev/links/sca:1->cap-sca:0"
+	echo 3 > "/configfs/vimc/mdev/links/sca:1->cap-sca:0/flags"
 }
 
 function stream_sen {
 	media-ctl -d platform:vimc -V '"sen":0[fmt:SBGGR8_1X8/640x480]' || exit 1
-	v4l2-ctl -z platform:vimc -d "cap-sen" -v width=1920,height=1440
-# TODO - after vimc is plugged, setting the flags has not effect
-	echo 3 > "/configfs/vimc/mdev/links/sen:0->cap-sen:0/flags"
+	v4l2-ctl -z platform:vimc -d "cap-sen" -v pixelformat=BA81
 	v4l2-ctl --stream-mmap --stream-count=100 -d /dev/video1
-	exit
 }
 
 function stream_deb {
 	media-ctl -d platform:vimc -V '"sen":0[fmt:SBGGR8_1X8/640x480]' || exit 1
+	media-ctl -d platform:vimc -V '"deb":0[fmt:SBGGR8_1X8/640x480]' || exit 1
 	media-ctl -d platform:vimc -V '"deb":1[fmt:SBGGR8_1X8/640x480]' || exit 1
-	v4l2-ctl -z platform:vimc -d "cap-sen" -v width=1920,height=1440
+#	v4l2-ctl -z platform:vimc -d "cap-sen" -v width=1920,height=1440
 	v4l2-ctl -z platform:vimc -d "cap-deb" -v pixelformat=BA81
-	v4l2-ctl --stream-mmap --stream-count=100 -d /dev/video2
+	v4l2-ctl --stream-mmap --stream-count=100 -d /dev/video0
 }
 
 function stream_sca {
 	media-ctl -d platform:vimc -V '"sen":0[fmt:SBGGR8_1X8/640x480]' || exit 1
 	media-ctl -d platform:vimc -V '"deb":0[fmt:SBGGR8_1X8/640x480]' || exit 1
 	media-ctl -d platform:vimc -V '"sca":1[fmt:SBGGR8_1X8/640x480]' || exit 1
-	v4l2-ctl -z platform:vimc -d "sen-cap" -v width=1920,height=1440
-	v4l2-ctl -z platform:vimc -d "deb-cap" -v pixelformat=BA81
-	v4l2-ctl -z platform:vimc -d "sca-cap" -v pixelformat=BA81
-	v4l2-ctl --stream-mmap --stream-count=100 -d /dev/video3
+	v4l2-ctl -z platform:vimc -d "cap-sen" -v width=1920,height=1440
+	v4l2-ctl -z platform:vimc -d "cap-deb" -v pixelformat=BA81
+	v4l2-ctl -z platform:vimc -d "cap-sca" -v pixelformat=BA81
+	v4l2-ctl --stream-mmap --stream-count=100 -d /dev/video2
 }
 
 
