@@ -47,9 +47,9 @@ function stream_sen {
 function stream_deb {
 	media-ctl -d platform:vimc -V '"sen":0[fmt:SBGGR8_1X8/640x480]' || exit 1
 	media-ctl -d platform:vimc -V '"deb":0[fmt:SBGGR8_1X8/640x480]' || exit 1
+	#This command has no effect, TODO - is this a bug?
 	media-ctl -d platform:vimc -V '"deb":1[fmt:SBGGR8_1X8/640x480]' || exit 1
-#	v4l2-ctl -z platform:vimc -d "cap-sen" -v width=1920,height=1440
-	v4l2-ctl -z platform:vimc -d "cap-deb" -v pixelformat=BA81
+	v4l2-ctl -z platform:vimc -d "cap-deb" -v pixelformat=RGB3
 	v4l2-ctl --stream-mmap --stream-count=100 -d /dev/video0
 }
 
