@@ -28,10 +28,13 @@ function simple_topo {
 
 	# Creating the links
 	mkdir "/configfs/vimc/mdev/links/sen:0->deb:0"
-	mkdir "/configfs/vimc/mdev/links/sen:0->cap-sen:0"
 	# 1 = enable, 2=immutable, 1|2=3
-	echo 3 > "/configfs/vimc/mdev/links/sen:0->cap-sen:0/flags"
+	echo 3 > "/configfs/vimc/mdev/links/sen:0->deb:0/flags"
 	mkdir "/configfs/vimc/mdev/links/deb:1->sca:0"
+	echo 3 > "/configfs/vimc/mdev/links/deb:1->sca:0/flags"
+
+	mkdir "/configfs/vimc/mdev/links/sen:0->cap-sen:0"
+	echo 3 > "/configfs/vimc/mdev/links/sen:0->cap-sen:0/flags"
 	mkdir "/configfs/vimc/mdev/links/deb:1->cap-deb:0"
 	echo 3 > "/configfs/vimc/mdev/links/deb:1->cap-deb:0/flags"
 	mkdir "/configfs/vimc/mdev/links/sca:1->cap-sca:0"
