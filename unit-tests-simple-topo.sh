@@ -88,6 +88,10 @@ if [ "$out" != $STRM_OUT ]; then echo "streaming deb failed"; exit; fi
 out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDSCA 2>&1)
 if [ "$out" != $STRM_OUT ]; then echo "streaming sca failed"; exit; fi
 
+media-ctl -d0 --print-dot > vmpath/simle.dot
+media-ctl -d0 --print-dot | dot -Tps -o vmpath/simle.ps
+
+
 echo "=========================================================================="
 echo "Test $test_idx: remove the scaler and see that the device can't be plugged"
 echo "=========================================================================="
