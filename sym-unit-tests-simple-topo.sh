@@ -7,6 +7,8 @@ function reinstall_vimc {
 	find /configfs/ -name "to-*" -exec rmdir {} \;
 	rmdir /configfs/vimc/mdev/*
 	rmdir /configfs/vimc/mdev
+	rmdir /configfs/vimc/mdev2/*
+	rmdir /configfs/vimc/mdev2
 
 	modprobe -vr vimc
 	umount /configfs
@@ -29,6 +31,20 @@ VIDDEB=/dev/video0
 STRM_CNT=10
 # generates the v4l-ctl streaming output "<<<<<<" ...
 STRM_OUT=$(printf '<%.0s' `seq $STRM_CNT`)
+
+function simpler_topo {
+	echo "start simple topo"
+	# Creating the entities
+	mkdir "/configfs/vimc/mdev2"
+	mkdir "/configfs/vimc/mdev2/vimc-sensor:sen"
+	mkdir "/configfs/vimc/mdev2/vimc-capture:cap-sen" #/dev/video0
+	
+	#sen -> cap-sen
+	mkdir "/configfs/vimc/mdev2/vimc-sensor:sen/pad:source:0/to-cap"
+	ln -s "/configfs/vimc/mdev2/vimc-capture:cap-sen/pad:sink:0" "/configfs/vimc/mdev2/vimc-sensor:sen/pad:source:0/to-cap"
+	echo on > "/configfs/vimc/mdev2/vimc-sensor:sen/pad:source:0/to-cap/immutable"
+	echo on > "/configfs/vimc/mdev2/vimc-sensor:sen/pad:source:0/to-cap/enabled"
+}
 
 function simple_topo {
 	echo "start simple topo"
@@ -73,7 +89,6 @@ function simple_topo {
 	echo on > "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-cap/enabled"
 }
 
-
 function configure_all_formats {
 	media-ctl -d platform:vimc-000 -V '"sen":0[fmt:SBGGR8_1X8/640x480]'
 	media-ctl -d platform:vimc-000 -V '"deb":0[fmt:SBGGR8_1X8/640x480]'
@@ -86,6 +101,11 @@ function configure_all_formats {
 	v4l2-ctl -z platform:vimc-000 -d "cap-deb" -v pixelformat=RGB3
 	#The scaler scales times 3, so need to set its capture accordingly
 	v4l2-ctl -z platform:vimc-000 -d "cap-sca" -v pixelformat=RGB3,width=1920,height=1440
+}
+
+function configure_all_formats1 {
+	media-ctl -d platform:vimc-001 -V '"sen":0[fmt:SBGGR8_1X8/640x480]'
+	v4l2-ctl -z platform:vimc-001 -d "cap-sen" -v pixelformat=BA81
 }
 
 echo 15 > /proc/sys/kernel/printk
@@ -148,13 +168,25 @@ if [ "$out" == $STRM_OUT ]; then echo "streaming sca DID NOT fail (it should hav
 reinstall_vimc
 simple_topo || exit 1
 echo "=========================================================================="
-echo "Test $test_idx: remove the scaler and create it again and make sure the device can be plugged and stream"
+echo "Test $test_idx: remove the scaler and its links and create it again and make
+echo "sure the device can be plugged and stream"
 echo "=========================================================================="
 ((test_idx++))
 echo 1 > /configfs/vimc/mdev/hotplug || exit 1
-rmdir "/configfs/vimc/mdev/entities/vimc-scaler:sca" || exit 1
-echo 1 > /configfs/vimc/mdev/hotplug && exit 1
-mkdir "/configfs/vimc/mdev/entities/vimc-scaler:sca" || exit 1
+rm /configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca/pad:sink:0 || exit 1
+rm "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap/pad:sink:0" || exit 1
+rmdir /configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap || exit 1
+
+mkdir /configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap || exit 1
+ln -s "/configfs/vimc/mdev/vimc-capture:cap-sca/pad:sink:0" "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap"
+echo on > "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap/immutable"
+echo on > "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap/enabled"
+
+mkdir "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca"
+ln -s "/configfs/vimc/mdev/vimc-scaler:sca/pad:sink:0" "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca"
+echo on > "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca/immutable"
+echo on > "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca/enabled"
+
 echo 1 > /configfs/vimc/mdev/hotplug || exit 1
 configure_all_formats
 out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDSEN 2>&1)
@@ -168,18 +200,15 @@ if [ "$out" != $STRM_OUT ]; then echo "streaming sca failed"; exit; fi
 
 reinstall_vimc
 simple_topo || exit 1
-echo "=========================================================================="
-echo "Test $test_idx: remove the scaler and the scaler's capture and any link they particpate. Make"
-echo "sure that the device can be plug, and the capture nodes of the sensor and the debayer can be streamed."
-echo "=========================================================================="
+echo "==============================================================================="
+echo "Test $test_idx: create two simple devices and make sure that they can both be loaded and upstreamed together
+echo "==============================================================================="
 ((test_idx++))
 echo 1 > /configfs/vimc/mdev/hotplug || exit 1
-rmdir "/configfs/vimc/mdev/entities/vimc-scaler:sca" || exit 1
-rmdir "/configfs/vimc/mdev/links/deb:1->sca:0" || exit 1
-rmdir "/configfs/vimc/mdev/entities/vimc-capture:cap-sca" || exit 1
-rmdir "/configfs/vimc/mdev/links/sca:1->cap-sca:0" || exit 1
-echo 1 > /configfs/vimc/mdev/hotplug || exit 1
+simpler_topo || exit 1
+echo 1 > /configfs/vimc/mdev2/hotplug || exit 1
 configure_all_formats
+configure_all_formats1
 out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDSEN 2>&1)
 if [ "$out" != $STRM_OUT ]; then echo "streaming sen failed"; exit; fi
 
@@ -187,5 +216,8 @@ out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDDEB 2>&1)
 if [ "$out" != $STRM_OUT ]; then echo "streaming deb failed"; exit; fi
 
 out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDSCA 2>&1)
-if [ "$out" == $STRM_OUT ]; then echo "streaming sca DID NOT fail (it should have)"; exit; fi
+if [ "$out" != $STRM_OUT ]; then echo "streaming sca failed"; exit; fi
+
+out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d /dev/video3 2>&1)
+if [ "$out" != $STRM_OUT ]; then echo "streaming simpler pipline failed"; exit; fi
 
