@@ -79,6 +79,9 @@ echo "==========================================================================
 reinstall_vimc
 simple_topo || exit 1
 echo 1 > /configfs/vimc/mdev/hotplug || exit 1
+media-ctl -d0 --print-dot > vmpath/simle.dot
+media-ctl -d0 --print-dot | dot -Tps -o vmpath/simle.ps
+
 configure_all_formats
 out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDSEN 2>&1)
 if [ "$out" != $STRM_OUT ]; then echo "streaming sen failed"; exit; fi
@@ -89,27 +92,24 @@ if [ "$out" != $STRM_OUT ]; then echo "streaming deb failed"; exit; fi
 out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDSCA 2>&1)
 if [ "$out" != $STRM_OUT ]; then echo "streaming sca failed"; exit; fi
 
-media-ctl -d0 --print-dot > vmpath/simle.dot
-media-ctl -d0 --print-dot | dot -Tps -o vmpath/simle.ps
 
-
+reinstall_vimc
+simple_topo || exit 1
 echo "=========================================================================="
 echo "Test $test_idx: remove the scaler and see that the device can't be plugged"
 echo "=========================================================================="
 ((test_idx++))
-reinstall_vimc
-simple_topo || exit 1
 echo 1 > /configfs/vimc/mdev/hotplug || exit 1
-rmdir "/configfs/vimc/mdev/entities/vimc-sensor:sen" || exit 1
+rmdir "/configfs/vimc/mdev/entities/vimc-scaler:sca" || exit 1
 echo 1 > /configfs/vimc/mdev/hotplug && exit 1
 
+reinstall_vimc
+simple_topo || exit 1
 echo "=========================================================================="
 echo "Test $test_idx: remove the scaler and the two links [debayer -> scaler],[scaler->vimc-cpature]"
 echo "and make sure that the cap-sca can't be streamed and that the the other captures can"
 echo "=========================================================================="
 ((test_idx++))
-reinstall_vimc
-simple_topo || exit 1
 echo 1 > /configfs/vimc/mdev/hotplug || exit 1
 rmdir "/configfs/vimc/mdev/entities/vimc-scaler:sca" || exit 1
 rmdir "/configfs/vimc/mdev/links/deb:1->sca:0" || exit 1
@@ -125,12 +125,12 @@ if [ "$out" != $STRM_OUT ]; then echo "streaming deb failed"; exit; fi
 out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDSCA 2>&1)
 if [ "$out" == $STRM_OUT ]; then echo "streaming sca DID NOT fail (it should have)"; exit; fi
 
+reinstall_vimc
+simple_topo || exit 1
 echo "=========================================================================="
 echo "Test $test_idx: remove the scaler and create it again and make sure the device can be plugged and stream"
 echo "=========================================================================="
 ((test_idx++))
-reinstall_vimc
-simple_topo || exit 1
 echo 1 > /configfs/vimc/mdev/hotplug || exit 1
 rmdir "/configfs/vimc/mdev/entities/vimc-scaler:sca" || exit 1
 echo 1 > /configfs/vimc/mdev/hotplug && exit 1
@@ -146,13 +146,13 @@ if [ "$out" != $STRM_OUT ]; then echo "streaming deb failed"; exit; fi
 out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDSCA 2>&1)
 if [ "$out" != $STRM_OUT ]; then echo "streaming sca failed"; exit; fi
 
+reinstall_vimc
+simple_topo || exit 1
 echo "=========================================================================="
 echo "Test $test_idx: remove the scaler and the scaler's capture and any link they particpate. Make"
 echo "sure that the device can be plug, and the capture nodes of the sensor and the debayer can be streamed."
 echo "=========================================================================="
 ((test_idx++))
-reinstall_vimc
-simple_topo || exit 1
 echo 1 > /configfs/vimc/mdev/hotplug || exit 1
 rmdir "/configfs/vimc/mdev/entities/vimc-scaler:sca" || exit 1
 rmdir "/configfs/vimc/mdev/links/deb:1->sca:0" || exit 1
