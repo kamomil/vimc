@@ -3,8 +3,9 @@
 set -x
 
 function reinstall_vimc {
-	rmdir /configfs/vimc/mdev/entities/*
-	rmdir /configfs/vimc/mdev/links/*
+	find /configfs/ -name "pad:sink*" -exec unlink {} \;
+	find /configfs/ -name "to-*" -exec rmdir {} \;
+	rmdir /configfs/vimc/mdev/*
 	rmdir /configfs/vimc/mdev
 
 	modprobe -vr vimc
@@ -30,28 +31,46 @@ STRM_CNT=10
 STRM_OUT=$(printf '<%.0s' `seq $STRM_CNT`)
 
 function simple_topo {
+	echo "start simple topo"
 	# Creating the entities
 	mkdir "/configfs/vimc/mdev"
-	mkdir "/configfs/vimc/mdev/entities/vimc-sensor:sen"
-	mkdir "/configfs/vimc/mdev/entities/vimc-debayer:deb"
-	mkdir "/configfs/vimc/mdev/entities/vimc-scaler:sca"
-	mkdir "/configfs/vimc/mdev/entities/vimc-capture:cap-sca" #/dev/video2
-	mkdir "/configfs/vimc/mdev/entities/vimc-capture:cap-sen" #/dev/video1
-	mkdir "/configfs/vimc/mdev/entities/vimc-capture:cap-deb" #/dev/video0
+	mkdir "/configfs/vimc/mdev/vimc-sensor:sen"
+	mkdir "/configfs/vimc/mdev/vimc-debayer:deb"
+	mkdir "/configfs/vimc/mdev/vimc-scaler:sca"
+	mkdir "/configfs/vimc/mdev/vimc-capture:cap-sca" #/dev/video2
+	mkdir "/configfs/vimc/mdev/vimc-capture:cap-sen" #/dev/video1
+	mkdir "/configfs/vimc/mdev/vimc-capture:cap-deb" #/dev/video0
 
 	# Creating the links
-	mkdir "/configfs/vimc/mdev/links/sen:0->deb:0"
-	# 1 = enable, 2=immutable, 1|2=3
-	echo 3 > "/configfs/vimc/mdev/links/sen:0->deb:0/flags"
-	mkdir "/configfs/vimc/mdev/links/deb:1->sca:0"
-	echo 3 > "/configfs/vimc/mdev/links/deb:1->sca:0/flags"
+	#sen -> deb
+	mkdir "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb"
+	ln -s "/configfs/vimc/mdev/vimc-debayer:deb/pad:sink:0" "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb"
+	echo on > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/immutable"
+	echo on > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/enabled"
 
-	mkdir "/configfs/vimc/mdev/links/sen:0->cap-sen:0"
-	echo 3 > "/configfs/vimc/mdev/links/sen:0->cap-sen:0/flags"
-	mkdir "/configfs/vimc/mdev/links/deb:1->cap-deb:0"
-	echo 3 > "/configfs/vimc/mdev/links/deb:1->cap-deb:0/flags"
-	mkdir "/configfs/vimc/mdev/links/sca:1->cap-sca:0"
-	echo 3 > "/configfs/vimc/mdev/links/sca:1->cap-sca:0/flags"
+	#deb -> sca
+	mkdir "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca"
+	ln -s "/configfs/vimc/mdev/vimc-scaler:sca/pad:sink:0" "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca"
+	echo on > "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca/immutable"
+	echo on > "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca/enabled"
+
+	#sca -> cap-sca
+	mkdir "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap"
+	ln -s "/configfs/vimc/mdev/vimc-capture:cap-sca/pad:sink:0" "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap"
+	echo on > "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap/immutable"
+	echo on > "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap/enabled"
+
+	#sen -> cap-sen
+	mkdir "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-cap"
+	ln -s "/configfs/vimc/mdev/vimc-capture:cap-sen/pad:sink:0" "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-cap"
+	echo on > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-cap/immutable"
+	echo on > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-cap/enabled"
+
+	#deb -> cap-deb
+	mkdir "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-cap"
+	ln -s "/configfs/vimc/mdev/vimc-capture:cap-deb/pad:sink:0" "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-cap"
+	echo on > "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-cap/immutable"
+	echo on > "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-cap/enabled"
 }
 
 
@@ -79,6 +98,9 @@ echo "==========================================================================
 reinstall_vimc
 simple_topo || exit 1
 echo 1 > /configfs/vimc/mdev/hotplug || exit 1
+media-ctl -d0 --print-dot > vmpath/simle.dot
+media-ctl -d0 --print-dot | dot -Tps -o vmpath/simle.ps
+
 configure_all_formats
 out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDSEN 2>&1)
 if [ "$out" != $STRM_OUT ]; then echo "streaming sen failed"; exit; fi
@@ -88,9 +110,6 @@ if [ "$out" != $STRM_OUT ]; then echo "streaming deb failed"; exit; fi
 
 out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDSCA 2>&1)
 if [ "$out" != $STRM_OUT ]; then echo "streaming sca failed"; exit; fi
-
-media-ctl -d0 --print-dot > vmpath/simle.dot
-media-ctl -d0 --print-dot | dot -Tps -o vmpath/simle.ps
 
 
 echo "=========================================================================="
@@ -123,7 +142,7 @@ out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDDEB 2>&1)
 if [ "$out" != $STRM_OUT ]; then echo "streaming deb failed"; exit; fi
 
 out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDSCA 2>&1)
-if [ "$out" == $STRM_OUT ]; then echo "streaming sca DID NOT fail (it should have)"; exit; fi
+if [ "$out" == $STRM_OUT ]; then echo "streaming sca DID NOT fail it should have"; exit; fi
 
 echo "=========================================================================="
 echo "Test $test_idx: remove the scaler and create it again and make sure the device can be plugged and stream"
@@ -147,7 +166,7 @@ out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDSCA 2>&1)
 if [ "$out" != $STRM_OUT ]; then echo "streaming sca failed"; exit; fi
 
 echo "=========================================================================="
-echo "Test $test_idx: remove the scaler and the scaler's capture and any link they particpate. Make"
+echo "Test $test_idx: remove the scaler and the scalers capture and any link they particpate. Make"
 echo "sure that the device can be plug, and the capture nodes of the sensor and the debayer can be streamed."
 echo "=========================================================================="
 ((test_idx++))
@@ -167,5 +186,4 @@ out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDDEB 2>&1)
 if [ "$out" != $STRM_OUT ]; then echo "streaming deb failed"; exit; fi
 
 out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDSCA 2>&1)
-if [ "$out" == $STRM_OUT ]; then echo "streaming sca DID NOT fail (it should have)"; exit; fi
-
+# if [ "$out" == $STRM_OUT ]; then echo "streaming sca DID NOT fail it should have"; exit; fi
