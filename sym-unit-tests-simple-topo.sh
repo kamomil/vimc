@@ -1,15 +1,13 @@
 #!/bin/bash
 # Display commands and their arguments as they are executed.
-set -x
+# set -x
 
 function reinstall_vimc {
-	find /configfs/ -name "pad:sink*" -exec unlink {} \;
+	find /configfs/ -mindepth 6 -name "pad:sink*" -exec unlink {} \;
 	find /configfs/ -name "to-*" -exec rmdir {} \;
-	rmdir /configfs/vimc/mdev/*
-	rmdir /configfs/vimc/mdev
-	rmdir /configfs/vimc/mdev2/*
-	rmdir /configfs/vimc/mdev2
-
+	find /configfs/ -mindepth 5 -maxdepth 5 -exec rmdir {} \;
+	find /configfs/ -mindepth 3 -maxdepth 3 -type d -exec rmdir {} \;
+	find /configfs/ -mindepth 2 -maxdepth 2 -type d -exec rmdir {} \;
 	modprobe -vr vimc
 	umount /configfs
 	modprobe -v vimc
@@ -17,7 +15,7 @@ function reinstall_vimc {
 	# This produce to much debugs when streaming on debayer and scaler
 	# echo "file drivers/media/platform/vimc/* +p" > /sys/kernel/debug/dynamic_debug/control
 	# echo "file drivers/media/mc/* +p" > /sys/kernel/debug/dynamic_debug/control
-	echo "file drivers/media/platform/vimc/vimc-core.c +p" > /sys/kernel/debug/dynamic_debug/control
+	# echo "file drivers/media/platform/vimc/vimc-core.c +p" > /sys/kernel/debug/dynamic_debug/control
 }
 
 # we set all links to be enabled and immutable
@@ -47,7 +45,7 @@ function simpler_topo {
 }
 
 function simple_topo {
-	echo "start simple topo"
+	echo "start simple topo for device "
 	# Creating the entities
 	mkdir "/configfs/vimc/mdev"
 	mkdir "/configfs/vimc/mdev/vimc-sensor:sen"
@@ -108,7 +106,7 @@ function configure_all_formats1 {
 	v4l2-ctl -z platform:vimc-001 -d "cap-sen" -v pixelformat=BA81
 }
 
-echo 15 > /proc/sys/kernel/printk
+# echo 15 > /proc/sys/kernel/printk
 
 test_idx=1
 reinstall_vimc
@@ -168,7 +166,7 @@ if [ "$out" == $STRM_OUT ]; then echo "streaming sca DID NOT fail (it should hav
 reinstall_vimc
 simple_topo || exit 1
 echo "=========================================================================="
-echo "Test $test_idx: remove the scaler and its links and create it again and make
+echo "Test $test_idx: remove the scaler and its links and create it again and make"
 echo "sure the device can be plugged and stream"
 echo "=========================================================================="
 ((test_idx++))
@@ -201,7 +199,7 @@ if [ "$out" != $STRM_OUT ]; then echo "streaming sca failed"; exit; fi
 reinstall_vimc
 simple_topo || exit 1
 echo "==============================================================================="
-echo "Test $test_idx: create two simple devices and make sure that they can both be loaded and upstreamed together
+echo "Test $test_idx: create two simple devices and make sure that they can both be loaded and upstreamed together"
 echo "==============================================================================="
 ((test_idx++))
 echo 1 > /configfs/vimc/mdev/hotplug || exit 1
