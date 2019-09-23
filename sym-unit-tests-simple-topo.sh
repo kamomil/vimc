@@ -39,6 +39,50 @@ if [ "$out" != $STRM_OUT ]; then echo "streaming deb failed"; exit; fi
 out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDSCA 2>&1)
 if [ "$out" != $STRM_OUT ]; then echo "streaming sca failed"; exit; fi
 
+reinstall_vimc
+simple_topo mdev || exit 1
+echo "==============================================================================="
+echo "Test $test_idx: make sure (immutable=on and enabled=off) is not allowed"
+echo "==============================================================================="
+((test_idx++))
+#should not succeed
+echo off > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/enabled" && exit 1
+#0,1
+echo off > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-cap/immutable" || exit 1
+#0,0
+echo off > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/enabled" || exit 1
+#should not succeed
+echo on > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/immutable" && exit 1
+#0,1
+echo off > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/enabled" || exit 1
+#1,1
+echo on > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/immutable" || exit 1
+
+#should not succeed
+echo 0 > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/enabled" && exit 1
+#0,1
+echo 0 > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-cap/immutable" || exit 1
+#0,0
+echo 0 > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/enabled" || exit 1
+#should not succeed
+echo 1 > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/immutable" && exit 1
+#0,1
+echo 0 > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/enabled" || exit 1
+#1,1
+echo 1 > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/immutable" || exit 1
+
+reinstall_vimc
+simple_topo mdev || exit 1
+echo "=========================================================================="
+echo "Test $test_idx: make sure no two entities with the same name is allowed"
+echo "=========================================================================="
+((test_idx++))
+echo 1 > /configfs/vimc/mdev/hotplug || exit 1
+mkdir "/configfs/vimc/mdev/vimc-scaler:sen" && exit 1
+mkdir "/configfs/vimc/mdev/vimc-capture:deb" && exit 1
+mkdir "/configfs/vimc/mdev/vimc-sensor:cap-sen" && exit 1
+echo 1 > /configfs/vimc/mdev/hotplug || exit 1
+
 
 reinstall_vimc
 simple_topo mdev || exit 1
