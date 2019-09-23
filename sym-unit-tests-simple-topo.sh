@@ -87,13 +87,13 @@ rmdir /configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap || exit 1
 
 mkdir /configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap || exit 1
 ln -s "/configfs/vimc/mdev/vimc-capture:cap-sca/pad:sink:0" "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap"
-echo on > "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap/immutable"
 echo on > "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap/enabled"
+echo on > "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap/immutable"
 
 mkdir "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca"
 ln -s "/configfs/vimc/mdev/vimc-scaler:sca/pad:sink:0" "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca"
-echo on > "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca/immutable"
 echo on > "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca/enabled"
+echo on > "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca/immutable"
 
 echo 1 > /configfs/vimc/mdev/hotplug || exit 1
 configure_all_formats
