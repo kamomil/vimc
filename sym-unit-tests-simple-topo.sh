@@ -42,34 +42,27 @@ if [ "$out" != $STRM_OUT ]; then echo "streaming sca failed"; exit; fi
 reinstall_vimc
 simple_topo mdev || exit 1
 echo "==============================================================================="
-echo "Test $test_idx: make sure (immutable=on and enabled=off) is not allowed"
+echo "Test $test_idx: make sure setting the type works"
 echo "==============================================================================="
 ((test_idx++))
 #should not succeed
-echo off > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/enabled" && exit 1
-#0,1
-echo off > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-cap/immutable" || exit 1
-#0,0
-echo off > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/enabled" || exit 1
-#should not succeed
-echo on > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/immutable" && exit 1
-#0,1
-echo off > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/enabled" || exit 1
-#1,1
-echo on > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/immutable" || exit 1
+echo off > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/type" || exit 1
+if [ 'd' != $(head -c 1 "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/type") ]; then exit; fi;
+echo 0 > /configfs/vimc/mdev/hotplug || exit 1
+echo 1 > /configfs/vimc/mdev/hotplug || exit 1
+media-ctl -d0 --print-dot | dot -Tps -o vmpath/simle-test${test_idx}-d.ps
+configure_all_formats
+out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDDEB 2>&1)
+if [ "$out" == $STRM_OUT ]; then echo "streaming deb DID NOT fail (it should have)"; exit; fi
 
-#should not succeed
-echo 0 > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/enabled" && exit 1
-#0,1
-echo 0 > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-cap/immutable" || exit 1
-#0,0
-echo 0 > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/enabled" || exit 1
-#should not succeed
-echo 1 > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/immutable" && exit 1
-#0,1
-echo 0 > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/enabled" || exit 1
-#1,1
-echo 1 > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/immutable" || exit 1
+echo on > "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/type" || exit 1
+if [ 'e' != $(head -c 1 "/configfs/vimc/mdev/vimc-sensor:sen/pad:source:0/to-deb/type") ]; then exit; fi;
+echo 0 > /configfs/vimc/mdev/hotplug || exit 1
+echo 1 > /configfs/vimc/mdev/hotplug || exit 1
+media-ctl -d0 --print-dot | dot -Tps -o vmpath/simle-test${test_idx}-e.ps
+configure_all_formats
+out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDDEB 2>&1)
+if [ "$out" != $STRM_OUT ]; then echo "streaming deb failed"; exit; fi
 
 reinstall_vimc
 simple_topo mdev || exit 1
@@ -82,7 +75,6 @@ mkdir "/configfs/vimc/mdev/vimc-scaler:sen" && exit 1
 mkdir "/configfs/vimc/mdev/vimc-capture:deb" && exit 1
 mkdir "/configfs/vimc/mdev/vimc-sensor:cap-sen" && exit 1
 echo 1 > /configfs/vimc/mdev/hotplug || exit 1
-
 
 reinstall_vimc
 simple_topo mdev || exit 1
@@ -131,13 +123,11 @@ rmdir /configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap || exit 1
 
 mkdir /configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap || exit 1
 ln -s "/configfs/vimc/mdev/vimc-capture:cap-sca/pad:sink:0" "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap"
-echo on > "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap/enabled"
-echo on > "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap/immutable"
+echo on > "/configfs/vimc/mdev/vimc-scaler:sca/pad:source:1/to-cap/type"
 
 mkdir "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca"
 ln -s "/configfs/vimc/mdev/vimc-scaler:sca/pad:sink:0" "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca"
-echo on > "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca/enabled"
-echo on > "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca/immutable"
+echo on > "/configfs/vimc/mdev/vimc-debayer:deb/pad:source:1/to-sca/type"
 
 echo 1 > /configfs/vimc/mdev/hotplug || exit 1
 configure_all_formats
@@ -161,6 +151,7 @@ simpler_topo mdev2 || exit 1
 echo 1 > /configfs/vimc/mdev2/hotplug || exit 1
 configure_all_formats
 configure_all_formats_simpler
+media-ctl -d0 --print-dot | dot -Tps -o vmpath/simle-test${test_idx}.ps
 out=$(v4l2-ctl --stream-mmap --stream-count=$STRM_CNT -d $VIDSEN 2>&1)
 if [ "$out" != $STRM_OUT ]; then echo "streaming sen failed"; exit; fi
 

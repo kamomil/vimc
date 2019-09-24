@@ -8,7 +8,9 @@ function reinstall_vimc {
 	modprobe -v vimc
 	mount -t configfs none /configfs
 	# This produce to much debugs when streaming on debayer and scaler
-	echo "file drivers/media/platform/vimc/* +p" > /sys/kernel/debug/dynamic_debug/control
+	# echo "file drivers/media/platform/vimc/* +p" > /sys/kernel/debug/dynamic_debug/control
+	echo "file drivers/media/platform/vimc/vimc-core.c +p" > /sys/kernel/debug/dynamic_debug/control
+	echo "file drivers/media/platform/vimc/vimc-configfs.c +p" > /sys/kernel/debug/dynamic_debug/control
 	# echo "file drivers/media/mc/* +p" > /sys/kernel/debug/dynamic_debug/control
 	# echo "file drivers/media/platform/vimc/vimc-core.c +p" > /sys/kernel/debug/dynamic_debug/control
 }
@@ -23,8 +25,7 @@ function simpler_topo {
 	#sen -> cap-sen
 	mkdir "/configfs/vimc/$DEV2/vimc-sensor:sen/pad:source:0/to-cap"
 	ln -s "/configfs/vimc/$DEV2/vimc-capture:cap-sen/pad:sink:0" "/configfs/vimc/$DEV2/vimc-sensor:sen/pad:source:0/to-cap"
-	echo on > "/configfs/vimc/$DEV2/vimc-sensor:sen/pad:source:0/to-cap/enabled"
-	echo on > "/configfs/vimc/$DEV2/vimc-sensor:sen/pad:source:0/to-cap/immutable"
+	echo immutable > "/configfs/vimc/$DEV2/vimc-sensor:sen/pad:source:0/to-cap/type"
 }
 
 function simple_topo {
@@ -43,32 +44,27 @@ function simple_topo {
 #sen -> deb
 	mkdir "/configfs/vimc/$DEV/vimc-sensor:sen/pad:source:0/to-deb"
 	ln -s "/configfs/vimc/$DEV/vimc-debayer:deb/pad:sink:0" "/configfs/vimc/$DEV/vimc-sensor:sen/pad:source:0/to-deb"
-	echo on > "/configfs/vimc/$DEV/vimc-sensor:sen/pad:source:0/to-deb/enabled"
-	echo on > "/configfs/vimc/$DEV/vimc-sensor:sen/pad:source:0/to-deb/immutable"
+	echo immutable > "/configfs/vimc/$DEV/vimc-sensor:sen/pad:source:0/to-deb/type"
 
 #deb -> sca
 	mkdir "/configfs/vimc/$DEV/vimc-debayer:deb/pad:source:1/to-sca"
 	ln -s "/configfs/vimc/$DEV/vimc-scaler:sca/pad:sink:0" "/configfs/vimc/$DEV/vimc-debayer:deb/pad:source:1/to-sca"
-	echo on > "/configfs/vimc/$DEV/vimc-debayer:deb/pad:source:1/to-sca/enabled"
-	echo on > "/configfs/vimc/$DEV/vimc-debayer:deb/pad:source:1/to-sca/immutable"
+	echo immutable > "/configfs/vimc/$DEV/vimc-debayer:deb/pad:source:1/to-sca/type"
 
 #sca -> cap-sca
 	mkdir "/configfs/vimc/$DEV/vimc-scaler:sca/pad:source:1/to-cap"
 	ln -s "/configfs/vimc/$DEV/vimc-capture:cap-sca/pad:sink:0" "/configfs/vimc/$DEV/vimc-scaler:sca/pad:source:1/to-cap"
-	echo on > "/configfs/vimc/$DEV/vimc-scaler:sca/pad:source:1/to-cap/enabled"
-	echo on > "/configfs/vimc/$DEV/vimc-scaler:sca/pad:source:1/to-cap/immutable"
+	echo immutable > "/configfs/vimc/$DEV/vimc-scaler:sca/pad:source:1/to-cap/type"
 
 #sen -> cap-sen
 	mkdir "/configfs/vimc/$DEV/vimc-sensor:sen/pad:source:0/to-cap"
 	ln -s "/configfs/vimc/$DEV/vimc-capture:cap-sen/pad:sink:0" "/configfs/vimc/$DEV/vimc-sensor:sen/pad:source:0/to-cap"
-	echo on > "/configfs/vimc/$DEV/vimc-sensor:sen/pad:source:0/to-cap/enabled"
-	echo on > "/configfs/vimc/$DEV/vimc-sensor:sen/pad:source:0/to-cap/immutable"
+	echo immutable > "/configfs/vimc/$DEV/vimc-sensor:sen/pad:source:0/to-cap/type"
 
 #deb -> cap-deb
 	mkdir "/configfs/vimc/$DEV/vimc-debayer:deb/pad:source:1/to-cap"
 	ln -s "/configfs/vimc/$DEV/vimc-capture:cap-deb/pad:sink:0" "/configfs/vimc/$DEV/vimc-debayer:deb/pad:source:1/to-cap"
-	echo on > "/configfs/vimc/$DEV/vimc-debayer:deb/pad:source:1/to-cap/enabled"
-	echo on > "/configfs/vimc/$DEV/vimc-debayer:deb/pad:source:1/to-cap/immutable"
+	echo immutable > "/configfs/vimc/$DEV/vimc-debayer:deb/pad:source:1/to-cap/type"
 }
 
 function configure_all_formats {
